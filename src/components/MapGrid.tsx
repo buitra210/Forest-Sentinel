@@ -1,5 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import "../styles/MapGrid.css";
+import {
+  Box,
+  Paper,
+  Typography,
+  Grid,
+  Modal,
+  Divider,
+  Card,
+  CardContent,
+  IconButton,
+  Container,
+  Alert,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import InfoIcon from "@mui/icons-material/Info";
+import MapIcon from "@mui/icons-material/Map";
 
 // Tay Son, Hanoi, Vietnam coordinates
 const TAY_SON_COORDINATES = {
@@ -7,17 +22,18 @@ const TAY_SON_COORDINATES = {
   lng: 105.8412,
 };
 
-const GRID_SIZE = 3; // 3x3 grid
-const ZOOM_LEVEL = 15; // Default zoom level
+const GRID_SIZE = 5;
+const ZOOM_LEVEL = 15;
+const BASE_CELL_SIZE_DEGREES = 0.003;
 
-// Map grid cell identifiers
 const GRID_LABELS = [
-  ["A1", "A2", "A3"],
-  ["B1", "B2", "B3"],
-  ["C1", "C2", "C3"],
+  ["A1", "A2", "A3", "A4", "A5"],
+  ["B1", "B2", "B3", "B4", "B5"],
+  ["C1", "C2", "C3", "C4", "C5"],
+  ["D1", "D2", "D3", "D4", "D5"],
+  ["E1", "E2", "E3", "E4", "E5"],
 ];
 
-// Define the grid cell interface
 interface GridCell {
   id: string;
   coordinates: { x: number; y: number };
@@ -26,14 +42,17 @@ interface GridCell {
   label: string;
 }
 
-// Calculate grid coordinates based on center point
 const calculateGridCoordinates = (): GridCell[] => {
   const cellsPerSide = GRID_SIZE;
   const gridCells: GridCell[] = [];
 
-  // Approximately 0.005 degrees covers a good area at zoom level 15
-  const latStep = 0.005;
-  const lngStep = 0.005;
+  // Điều chỉnh hệ số cho kinh độ để có grid vuông (dựa vào cosine của vĩ độ)
+  // Tại vĩ độ gần xích đạo, 1 độ kinh tuyến ≈ 1 độ vĩ tuyến * cos(vĩ độ)
+  const latRadians = TAY_SON_COORDINATES.lat * (Math.PI / 180);
+  const lngCorrectionFactor = 1 / Math.cos(latRadians);
+
+  const latStep = BASE_CELL_SIZE_DEGREES;
+  const lngStep = BASE_CELL_SIZE_DEGREES * lngCorrectionFactor;
 
   const startLat = TAY_SON_COORDINATES.lat + (latStep * (cellsPerSide - 1)) / 2;
   const startLng = TAY_SON_COORDINATES.lng - (lngStep * (cellsPerSide - 1)) / 2;
@@ -70,6 +89,21 @@ const calculateGridCoordinates = (): GridCell[] => {
 
 const gridCells = calculateGridCoordinates();
 
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: { xs: "95%", sm: "90%", md: "85%", lg: "80%" },
+  maxWidth: 1000,
+  bgcolor: "background.paper",
+  boxShadow: 24,
+  p: 4,
+  borderRadius: 2,
+  maxHeight: "90vh",
+  overflow: "auto",
+} as const;
+
 const MapGrid = () => {
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -79,6 +113,7 @@ const MapGrid = () => {
   const detailMapInstanceRef = useRef<L.Map | null>(null);
   const analysisMapRef = useRef<HTMLDivElement>(null);
   const analysisMapInstanceRef = useRef<L.Map | null>(null);
+  const [riskLevel, setRiskLevel] = useState<"high" | "low">("low");
 
   // Get the cell data for the selected cell
   const selectedCellData = gridCells.find((cell) => cell.id === selectedCell);
@@ -87,24 +122,26 @@ const MapGrid = () => {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Create the map instance
-    const map = L.map(mapRef.current, {
-      center: TAY_SON_COORDINATES,
-      zoom: ZOOM_LEVEL,
-      zoomControl: false, // Disable zoom to prevent changing the grid
-      dragging: false, // Disable dragging to keep the map in place
-      touchZoom: false, // Disable touch zoom
-      scrollWheelZoom: false, // Disable scroll wheel zoom
-      doubleClickZoom: false, // Disable double click zoom
-      boxZoom: false, // Disable box zoom
-      keyboard: false, // Disable keyboard navigation
-    });
+    try {
+      const map = L.map(mapRef.current, {
+        center: TAY_SON_COORDINATES,
+        zoom: ZOOM_LEVEL,
+        zoomControl: false,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      });
 
-    // Add ESRI World Imagery basemap
-    L.esri.basemapLayer("Imagery").addTo(map);
+      L.esri.basemapLayer("Imagery").addTo(map);
 
-    mapInstanceRef.current = map;
-    setMapLoaded(true);
+      mapInstanceRef.current = map;
+      setMapLoaded(true);
+    } catch (error) {
+      console.error("Error initializing map:", error);
+    }
 
     return () => {
       if (mapInstanceRef.current) {
@@ -114,81 +151,80 @@ const MapGrid = () => {
     };
   }, []);
 
-  // Handle cell click
   const handleCellClick = (id: string) => {
     setSelectedCell(id);
+    const hash = id.charCodeAt(0);
+    setRiskLevel(hash % 2 === 0 ? "high" : "low");
   };
 
-  // Handle close popup
   const handleClosePopup = () => {
     setSelectedCell(null);
   };
 
-  // Initialize detail maps when a cell is selected
   useEffect(() => {
     if (!selectedCell || !detailMapRef.current || !analysisMapRef.current)
       return;
 
-    const cellData = gridCells.find((cell) => cell.id === selectedCell);
-    if (!cellData) return;
+    try {
+      const cellData = gridCells.find((cell) => cell.id === selectedCell);
+      if (!cellData) return;
 
-    // Create detail map (real satellite image)
-    if (detailMapInstanceRef.current) {
-      detailMapInstanceRef.current.remove();
+      if (detailMapInstanceRef.current) {
+        detailMapInstanceRef.current.remove();
+      }
+
+      const detailMap = L.map(detailMapRef.current, {
+        center: cellData.center,
+        zoom: ZOOM_LEVEL + 1,
+        zoomControl: false,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      });
+
+      L.esri.basemapLayer("Imagery").addTo(detailMap);
+      detailMapInstanceRef.current = detailMap;
+
+      if (analysisMapInstanceRef.current) {
+        analysisMapInstanceRef.current.remove();
+      }
+
+      const analysisMap = L.map(analysisMapRef.current, {
+        center: cellData.center,
+        zoom: ZOOM_LEVEL + 1,
+        zoomControl: false,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+      });
+
+      // Add a modified version of the ESRI imagery for demo purposes
+      // In a real application, this would be your processed/analyzed image
+      const analysisLayer = L.esri.basemapLayer("Imagery");
+      analysisLayer.addTo(analysisMap);
+
+      const deforestationRisk = riskLevel === "high";
+      const riskColor = deforestationRisk
+        ? "rgba(255, 0, 0, 0.3)"
+        : "rgba(0, 255, 0, 0.3)";
+
+      L.rectangle(cellData.bounds, {
+        color: deforestationRisk ? "#ff0000" : "#00ff00",
+        weight: 2,
+        fillColor: riskColor,
+        fillOpacity: 0.4,
+      }).addTo(analysisMap);
+
+      analysisMapInstanceRef.current = analysisMap;
+    } catch (error) {
+      console.error("Error initializing detail maps:", error);
     }
-
-    const detailMap = L.map(detailMapRef.current, {
-      center: cellData.center,
-      zoom: ZOOM_LEVEL + 1,
-      zoomControl: false,
-      dragging: false,
-      touchZoom: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-    });
-
-    // Add ESRI World Imagery basemap
-    L.esri.basemapLayer("Imagery").addTo(detailMap);
-    detailMapInstanceRef.current = detailMap;
-
-    // Create analysis map (processed image simulation)
-    if (analysisMapInstanceRef.current) {
-      analysisMapInstanceRef.current.remove();
-    }
-
-    const analysisMap = L.map(analysisMapRef.current, {
-      center: cellData.center,
-      zoom: ZOOM_LEVEL + 1,
-      zoomControl: false,
-      dragging: false,
-      touchZoom: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-    });
-
-    // Add a modified version of the ESRI imagery for demo purposes
-    // In a real application, this would be your processed/analyzed image
-    const analysisLayer = L.esri.basemapLayer("Imagery");
-    analysisLayer.addTo(analysisMap);
-
-    // Simulate a processed image by adding a colored overlay
-    const deforestationRisk = Math.random();
-    const riskColor =
-      deforestationRisk > 0.5 ? "rgba(255, 0, 0, 0.3)" : "rgba(0, 255, 0, 0.3)";
-
-    // Add a rectangle overlay to simulate processing
-    L.rectangle(cellData.bounds, {
-      color: deforestationRisk > 0.5 ? "#ff0000" : "#00ff00",
-      weight: 2,
-      fillColor: riskColor,
-      fillOpacity: 0.4,
-    }).addTo(analysisMap);
-
-    analysisMapInstanceRef.current = analysisMap;
 
     return () => {
       if (detailMapInstanceRef.current) {
@@ -200,7 +236,7 @@ const MapGrid = () => {
         analysisMapInstanceRef.current = null;
       }
     };
-  }, [selectedCell]);
+  }, [selectedCell, riskLevel]);
 
   // Group cells by row for display
   const rows = gridCells.reduce((acc, cell) => {
@@ -211,82 +247,209 @@ const MapGrid = () => {
   }, {} as Record<number, typeof gridCells>);
 
   return (
-    <div className="map-container">
-      <div className="map-info">
-        <h2>Tay Son Area, Hanoi - Satellite Imagery</h2>
-        <p>
-          Click on any grid cell to view detailed satellite imagery and
-          analysis.
-        </p>
-      </div>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center">
+          Tay Son Area, Hanoi - Satellite Imagery
+        </Typography>
+        <Typography variant="body1" paragraph align="center">
+          Interactive 5x5 grid map of Tay Son region. Click on any cell to view
+          detailed analysis.
+        </Typography>
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <Typography variant="body2">
+            Displaying real-time ESRI World Imagery with 25 analysis cells for
+            precise deforestation monitoring.
+          </Typography>
+        </Alert>
+      </Paper>
 
-      <div className="grid-container">
-        <div id="main-map" ref={mapRef} className="main-map"></div>
+      <Paper
+        elevation={3}
+        sx={{
+          position: "relative",
+          width: "100%",
+          height: 0,
+          paddingBottom: "100%",
+          overflow: "hidden",
+          borderRadius: 2,
+          "@media (min-width: 600px)": {
+            paddingBottom: "85%",
+          },
+          "@media (min-width: 960px)": {
+            paddingBottom: "75%",
+          },
+        }}
+      >
+        <Box
+          ref={mapRef}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 1,
+          }}
+        />
 
         {mapLoaded && (
-          <div className="grid-overlay">
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 2,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             {Object.entries(rows).map(([rowIndex, cells]) => (
-              <div key={rowIndex} className="grid-row">
+              <Grid container key={rowIndex} sx={{ flex: 1 }} spacing={0}>
                 {cells.map((cell) => (
-                  <div
+                  <Grid
+                    item
+                    xs={12 / GRID_SIZE}
                     key={cell.id}
-                    className="grid-cell"
+                    sx={{
+                      position: "relative",
+                      border: "2px solid rgba(255, 255, 255, 0.7)",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.3)",
+                      },
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "stretch",
+                    }}
                     onClick={() => handleCellClick(cell.id)}
                   >
-                    <div className="cell-label">{cell.label}</div>
-                    <div className="cell-overlay"></div>
-                  </div>
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 2,
+                        left: 2,
+                        backgroundColor: "rgba(0, 0, 0, 0.7)",
+                        color: "white",
+                        padding: { xs: "2px 4px", sm: "3px 6px" },
+                        borderRadius: 1,
+                        fontWeight: "bold",
+                        zIndex: 2,
+                        fontSize: { xs: "10px", sm: "12px", md: "14px" },
+                      }}
+                    >
+                      {cell.label}
+                    </Box>
+                  </Grid>
                 ))}
-              </div>
+              </Grid>
             ))}
-          </div>
+          </Box>
         )}
-      </div>
+      </Paper>
 
-      {selectedCell && (
-        <div className="detail-popup">
-          <div className="popup-content">
-            <button className="close-button" onClick={handleClosePopup}>
-              ×
-            </button>
-            <h3>Grid Cell {selectedCellData?.label}</h3>
+      <Modal
+        open={selectedCell !== null}
+        onClose={handleClosePopup}
+        aria-labelledby="detail-modal-title"
+      >
+        <Box sx={modalStyle}>
+          <IconButton
+            aria-label="close"
+            onClick={handleClosePopup}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: "grey.500",
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
 
-            <div className="image-comparison">
-              <div className="image-container">
-                <h4>Satellite Image</h4>
-                <div
-                  id="detail-map"
-                  ref={detailMapRef}
-                  className="detail-map"
-                ></div>
-              </div>
+          <Typography
+            id="detail-modal-title"
+            variant="h5"
+            component="h2"
+            gutterBottom
+          >
+            <MapIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+            Grid Cell {selectedCellData?.label}
+          </Typography>
 
-              <div className="image-container">
-                <h4>Analysis Result</h4>
-                <div
-                  id="analysis-map"
-                  ref={analysisMapRef}
-                  className="analysis-map"
-                ></div>
-              </div>
-            </div>
+          <Divider sx={{ mb: 3 }} />
 
-            <div className="analysis-data">
-              <h4>Deforestation Risk Analysis</h4>
-              <p>
-                This area shows {Math.random() > 0.5 ? "high" : "low"} risk of
-                deforestation based on our predictive model.
-              </p>
-              <p>Last updated: {new Date().toLocaleDateString()}</p>
-              <p>
-                Location: {selectedCellData?.center.lat.toFixed(4)}°N,{" "}
-                {selectedCellData?.center.lng.toFixed(4)}°E
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Satellite Image
+                  </Typography>
+                  <Box
+                    ref={detailMapRef}
+                    sx={{
+                      width: "100%",
+                      aspectRatio: "1/1",
+                      borderRadius: 1,
+                      overflow: "hidden",
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Analysis Result
+                  </Typography>
+                  <Box
+                    ref={analysisMapRef}
+                    sx={{
+                      width: "100%",
+                      aspectRatio: "1/1",
+                      borderRadius: 1,
+                      overflow: "hidden",
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <Card sx={{ mt: 3, bgcolor: "background.default" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <InfoIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                Deforestation Risk Analysis
+              </Typography>
+              <Typography variant="body1" paragraph>
+                This area shows {riskLevel} risk of deforestation based on our
+                predictive model.
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    Last updated: {new Date().toLocaleDateString()}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    Location: {selectedCellData?.center.lat.toFixed(4)}°N,{" "}
+                    {selectedCellData?.center.lng.toFixed(4)}°E
+                  </Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Box>
+      </Modal>
+    </Container>
   );
 };
 
