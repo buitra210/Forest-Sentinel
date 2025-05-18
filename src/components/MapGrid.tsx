@@ -16,15 +16,21 @@ import CloseIcon from "@mui/icons-material/Close";
 import InfoIcon from "@mui/icons-material/Info";
 import MapIcon from "@mui/icons-material/Map";
 
-// Tay Son, Hanoi, Vietnam coordinates
-const TAY_SON_COORDINATES = {
-  lat: 21.0245,
-  lng: 105.8412,
+const REGION_BOUNDS = {
+  west: 105.43,
+  south: 21.06,
+  east: 105.53,
+  north: 21.16,
+};
+
+const CENTER_COORDINATES = {
+  lat: (REGION_BOUNDS.north + REGION_BOUNDS.south) / 2,
+  lng: (REGION_BOUNDS.east + REGION_BOUNDS.west) / 2,
 };
 
 const GRID_SIZE = 5;
-const ZOOM_LEVEL = 15;
-const BASE_CELL_SIZE_DEGREES = 0.003;
+const ZOOM_LEVEL = 14; // Điều chỉnh zoom level phù hợp với khu vực Sơn Tây
+const BASE_CELL_SIZE_DEGREES = 0.015; // Điều chỉnh kích thước ô cho phù hợp với khu vực
 
 const GRID_LABELS = [
   ["A1", "A2", "A3", "A4", "A5"],
@@ -46,16 +52,15 @@ const calculateGridCoordinates = (): GridCell[] => {
   const cellsPerSide = GRID_SIZE;
   const gridCells: GridCell[] = [];
 
-  // Điều chỉnh hệ số cho kinh độ để có grid vuông (dựa vào cosine của vĩ độ)
-  // Tại vĩ độ gần xích đạo, 1 độ kinh tuyến ≈ 1 độ vĩ tuyến * cos(vĩ độ)
-  const latRadians = TAY_SON_COORDINATES.lat * (Math.PI / 180);
+  const latRadians = CENTER_COORDINATES.lat * (Math.PI / 180);
   const lngCorrectionFactor = 1 / Math.cos(latRadians);
 
+  // Kích thước ô theo vĩ độ và kinh độ
   const latStep = BASE_CELL_SIZE_DEGREES;
   const lngStep = BASE_CELL_SIZE_DEGREES * lngCorrectionFactor;
 
-  const startLat = TAY_SON_COORDINATES.lat + (latStep * (cellsPerSide - 1)) / 2;
-  const startLng = TAY_SON_COORDINATES.lng - (lngStep * (cellsPerSide - 1)) / 2;
+  const startLat = CENTER_COORDINATES.lat + (latStep * (cellsPerSide - 1)) / 2;
+  const startLng = CENTER_COORDINATES.lng - (lngStep * (cellsPerSide - 1)) / 2;
 
   for (let row = 0; row < cellsPerSide; row++) {
     for (let col = 0; col < cellsPerSide; col++) {
@@ -115,16 +120,14 @@ const MapGrid = () => {
   const analysisMapInstanceRef = useRef<L.Map | null>(null);
   const [riskLevel, setRiskLevel] = useState<"high" | "low">("low");
 
-  // Get the cell data for the selected cell
   const selectedCellData = gridCells.find((cell) => cell.id === selectedCell);
 
-  // Initialize the main map
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     try {
       const map = L.map(mapRef.current, {
-        center: TAY_SON_COORDINATES,
+        center: CENTER_COORDINATES,
         zoom: ZOOM_LEVEL,
         zoomControl: false,
         dragging: false,
@@ -204,8 +207,6 @@ const MapGrid = () => {
         keyboard: false,
       });
 
-      // Add a modified version of the ESRI imagery for demo purposes
-      // In a real application, this would be your processed/analyzed image
       const analysisLayer = L.esri.basemapLayer("Imagery");
       analysisLayer.addTo(analysisMap);
 
@@ -238,28 +239,18 @@ const MapGrid = () => {
     };
   }, [selectedCell, riskLevel]);
 
-  // Group cells by row for display
-  const rows = gridCells.reduce((acc, cell) => {
-    const { y } = cell.coordinates;
-    if (!acc[y]) acc[y] = [];
-    acc[y].push(cell);
-    return acc;
-  }, {} as Record<number, typeof gridCells>);
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          Tay Son Area, Hanoi - Satellite Imagery
+          Sơn Tây Forest Monitoring
         </Typography>
-        <Typography variant="body1" paragraph align="center">
-          Interactive 5x5 grid map of Tay Son region. Click on any cell to view
-          detailed analysis.
-        </Typography>
+
         <Alert severity="info" sx={{ mt: 2 }}>
           <Typography variant="body2">
-            Displaying real-time ESRI World Imagery with 25 analysis cells for
-            precise deforestation monitoring.
+            Khu vực giám sát: {REGION_BOUNDS.west.toFixed(4)}°E đến{" "}
+            {REGION_BOUNDS.east.toFixed(4)}°E, {REGION_BOUNDS.south.toFixed(4)}
+            °N đến {REGION_BOUNDS.north.toFixed(4)}°N
           </Typography>
         </Alert>
       </Paper>
@@ -269,15 +260,16 @@ const MapGrid = () => {
         sx={{
           position: "relative",
           width: "100%",
-          height: 0,
-          paddingBottom: "100%",
+          aspectRatio: "1/1", // Đảm bảo container là hình vuông
+          maxHeight: "800px",
           overflow: "hidden",
           borderRadius: 2,
+          margin: "0 auto",
           "@media (min-width: 600px)": {
-            paddingBottom: "85%",
+            width: "90%", // Thu nhỏ kích thước trên màn hình lớn để dễ nhìn
           },
           "@media (min-width: 960px)": {
-            paddingBottom: "75%",
+            width: "80%",
           },
         }}
       >
@@ -302,50 +294,53 @@ const MapGrid = () => {
               width: "100%",
               height: "100%",
               zIndex: 2,
-              display: "flex",
-              flexDirection: "column",
+              display: "grid",
+              gridTemplateRows: "repeat(5, 1fr)",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 0,
             }}
           >
-            {Object.entries(rows).map(([rowIndex, cells]) => (
-              <Grid container key={rowIndex} sx={{ flex: 1 }} spacing={0}>
-                {cells.map((cell) => (
-                  <Grid
-                    item
-                    xs={12 / GRID_SIZE}
-                    key={cell.id}
-                    sx={{
-                      position: "relative",
-                      border: "2px solid rgba(255, 255, 255, 0.7)",
-                      cursor: "pointer",
-                      transition: "background-color 0.2s",
-                      "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.3)",
-                      },
-                      height: "100%",
-                      display: "flex",
-                      alignItems: "stretch",
-                    }}
-                    onClick={() => handleCellClick(cell.id)}
-                  >
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: 2,
-                        left: 2,
-                        backgroundColor: "rgba(0, 0, 0, 0.7)",
-                        color: "white",
-                        padding: { xs: "2px 4px", sm: "3px 6px" },
-                        borderRadius: 1,
-                        fontWeight: "bold",
-                        zIndex: 2,
-                        fontSize: { xs: "10px", sm: "12px", md: "14px" },
-                      }}
-                    >
-                      {cell.label}
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
+            {gridCells.map((cell) => (
+              <Box
+                key={cell.id}
+                sx={{
+                  position: "relative",
+                  border: "2px solid rgba(255, 255, 255, 0.7)",
+                  cursor: "pointer",
+                  width: "100%",
+                  height: "100%",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.3)",
+                    transform: "scale(0.97)",
+                    zIndex: 10,
+                  },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gridRow: Math.floor((parseInt(cell.id) - 1) / GRID_SIZE) + 1,
+                  gridColumn: ((parseInt(cell.id) - 1) % GRID_SIZE) + 1,
+                  overflow: "hidden",
+                }}
+                onClick={() => handleCellClick(cell.id)}
+              >
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 2,
+                    left: 2,
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                    color: "white",
+                    padding: { xs: "2px 4px", sm: "3px 6px" },
+                    borderRadius: 1,
+                    fontWeight: "bold",
+                    zIndex: 2,
+                    fontSize: { xs: "10px", sm: "12px", md: "14px" },
+                  }}
+                >
+                  {cell.label}
+                </Box>
+              </Box>
             ))}
           </Box>
         )}
@@ -376,8 +371,8 @@ const MapGrid = () => {
             component="h2"
             gutterBottom
           >
-            <MapIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            Grid Cell {selectedCellData?.label}
+            <MapIcon sx={{ mr: 1, verticalAlign: "middle" }} />Ô phân tích{" "}
+            {selectedCellData?.label}
           </Typography>
 
           <Divider sx={{ mb: 3 }} />
@@ -387,7 +382,7 @@ const MapGrid = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Satellite Image
+                    Ảnh vệ tinh
                   </Typography>
                   <Box
                     ref={detailMapRef}
@@ -406,7 +401,7 @@ const MapGrid = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Analysis Result
+                    Kết quả phân tích
                   </Typography>
                   <Box
                     ref={analysisMapRef}
@@ -426,22 +421,23 @@ const MapGrid = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 <InfoIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                Deforestation Risk Analysis
+                Phân tích nguy cơ phá rừng
               </Typography>
               <Typography variant="body1" paragraph>
-                This area shows {riskLevel} risk of deforestation based on our
-                predictive model.
+                Khu vực này có mức độ rủi ro{" "}
+                {riskLevel === "high" ? "cao" : "thấp"} về phá rừng dựa trên mô
+                hình dự đoán của chúng tôi.
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    Last updated: {new Date().toLocaleDateString()}
+                    Cập nhật lần cuối: {new Date().toLocaleDateString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
-                    Location: {selectedCellData?.center.lat.toFixed(4)}°N,{" "}
-                    {selectedCellData?.center.lng.toFixed(4)}°E
+                    Vị trí: {selectedCellData?.center.lat.toFixed(4)}°B,{" "}
+                    {selectedCellData?.center.lng.toFixed(4)}°Đ
                   </Typography>
                 </Grid>
               </Grid>
