@@ -11,7 +11,16 @@
   },
   "dependencies": {
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "@mui/icons-material": "^5.11.16",
+    "@mui/lab": "^5.0.0-alpha.135",
+    "@mui/material": "^5.13.7",
+    "@mui/styled-engine-sc": "^5.12.0",
+    "@mui/x-date-pickers": "^6.19.6",
+    "leaflet": "^1.9.4",
+    "@react-leaflet/core": "^2.0.2",
+    "esri-leaflet": "^3.0.11",
+    "esri-leaflet-vector": "^4.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
