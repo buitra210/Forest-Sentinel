@@ -10,23 +10,25 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.12",
     "@mui/lab": "^5.0.0-alpha.166",
     "@mui/material": "^5.15.12",
     "@mui/styled-engine-sc": "^6.0.0-alpha.17",
     "@mui/x-date-pickers": "^6.19.6",
-    "leaflet": "^1.9.4",
-    "@types/leaflet": "^1.9.8",
-    "react-leaflet": "^4.2.1",
     "@react-leaflet/core": "^2.1.0",
+    "@types/leaflet": "^1.9.8",
+    "axios": "^1.9.0",
     "esri-leaflet": "^3.0.11",
     "esri-leaflet-vector": "^4.1.2",
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.0"
+    "leaflet": "^1.9.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1"
   },
   "devDependencies": {
+    "@emotion/babel-plugin": "^11.11.0",
     "@eslint/js": "^9.25.0",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
@@ -37,7 +39,6 @@
     "globals": "^16.0.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5",
-    "@emotion/babel-plugin": "^11.11.0"
+    "vite": "^6.3.5"
   }
 }

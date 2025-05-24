@@ -1,4 +1,5 @@
 import MapGrid from "./components/MapGrid";
+import Map from "./components/Map";
 import {
   CssBaseline,
   ThemeProvider,
@@ -123,7 +124,7 @@ function App() {
           </Toolbar>
         </AppBar>
         <Container component="main" sx={{ flexGrow: 1, mt: 2 }}>
-          <MapGrid />
+          <Map />
         </Container>
       </Box>
     </ThemeProvider>
