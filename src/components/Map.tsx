@@ -6,14 +6,18 @@ const gridRows = 8;
 const gridCols = 6;
 
 const Map = () => {
-  const [imageUrls, setImageUrls] = useState<Record<string, { rgb?: string; mask?: string }>>({});
+  const [imageUrls, setImageUrls] = useState<
+    Record<string, { rgb?: string; mask?: string }>
+  >({});
   const [selectedDate, setSelectedDate] = useState("");
   const [viewMode, setViewMode] = useState<"rgb" | "mask" | "overlay">("rgb");
   const [opacity, setOpacity] = useState<number>(50);
 
   const fetchImagesFromBackend = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/cloudinary/images");
+      const response = await axios.get(
+        "http://localhost:3000/api/cloudinary/images"
+      );
       const results = response.data;
       setImageUrls(results);
       if (Object.keys(results).length > 0) {
@@ -55,7 +59,9 @@ const Map = () => {
       <Typography variant="h6">Chế độ hiển thị:</Typography>
       <Select
         value={viewMode}
-        onChange={(e) => setViewMode(e.target.value as "rgb" | "mask" | "overlay")}
+        onChange={(e) =>
+          setViewMode(e.target.value as "rgb" | "mask" | "overlay")
+        }
         sx={{ mb: 2, ml: 2 }}
       >
         <MenuItem value="rgb">Chỉ RGB</MenuItem>
