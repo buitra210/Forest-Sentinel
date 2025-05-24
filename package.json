@@ -25,7 +25,9 @@
     "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-leaflet": "^4.2.1"
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^7.6.0",
+    "resemblejs": "^5.0.0"
   },
   "devDependencies": {
     "@emotion/babel-plugin": "^11.11.0",

@@ -1,5 +1,5 @@
-import MapGrid from "./components/MapGrid";
 import Map from "./components/Map";
+import ImageComparison from "./components/ImageComparison";
 import {
   CssBaseline,
   ThemeProvider,
@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { green } from "@mui/material/colors";
 import ForestIcon from "@mui/icons-material/Forest";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 // Create a custom theme with forest-related colors
 const theme = createTheme({
@@ -103,30 +104,35 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-      >
-        <AppBar position="static">
-          <Toolbar>
-            <ForestIcon sx={{ mr: 2 }} />
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h5" component="h1">
-                Tay Son Forest Monitoring System
-              </Typography>
-              <Typography
-                variant="subtitle2"
-                component="p"
-                sx={{ opacity: 0.8 }}
-              >
-                Satellite Imagery Analysis for Deforestation Prevention
-              </Typography>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        <Container component="main" sx={{ flexGrow: 1, mt: 2 }}>
-          <Map />
-        </Container>
-      </Box>
+      <Router>
+        <Box
+          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+        >
+          <AppBar position="static">
+            <Toolbar>
+              <ForestIcon sx={{ mr: 2 }} />
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="h5" component="h1">
+                  Tay Son Forest Monitoring System
+                </Typography>
+                <Typography
+                  variant="subtitle2"
+                  component="p"
+                  sx={{ opacity: 0.8 }}
+                >
+                  Satellite Imagery Analysis for Deforestation Prevention
+                </Typography>
+              </Box>
+            </Toolbar>
+          </AppBar>
+          <Container component="main" sx={{ flexGrow: 1, mt: 2 }}>
+            <Routes>
+              <Route path="/" element={<Map />} />
+              <Route path="/compare" element={<ImageComparison />} />
+            </Routes>
+          </Container>
+        </Box>
+      </Router>
     </ThemeProvider>
   );
 }
