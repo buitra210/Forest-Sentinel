@@ -1,5 +1,6 @@
-import MapGrid from "./components/MapGrid";
 import Map from "./components/Map";
+import GridDetail from "./components/GridDetail";
+import { Routes, Route } from "react-router-dom";
 import {
   CssBaseline,
   ThemeProvider,
@@ -104,7 +105,12 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100vh",
+          backgroundColor: "#FFFFF0",
+        }}
       >
         <AppBar position="static">
           <Toolbar>
@@ -124,7 +130,13 @@ function App() {
           </Toolbar>
         </AppBar>
         <Container component="main" sx={{ flexGrow: 1, mt: 2 }}>
-          <Map />
+          <Routes>
+            <Route path="/" element={<Map />} />
+            <Route
+              path="/grid-detail/:imageId/:col/:row"
+              element={<GridDetail />}
+            />
+          </Routes>
         </Container>
       </Box>
     </ThemeProvider>
