@@ -1,6 +1,6 @@
 import Map from "./components/Map";
 import GridDetail from "./components/GridDetail";
-import { Routes, Route } from "react-router-dom";
+import ImageComparison from "./components/ImageComparison";
 import {
   CssBaseline,
   ThemeProvider,
@@ -13,8 +13,9 @@ import {
 } from "@mui/material";
 import { green } from "@mui/material/colors";
 import ForestIcon from "@mui/icons-material/Forest";
+import { Routes, Route } from "react-router-dom";
 
-// Create a custom theme with forest-related colors
+// Theme config (unchanged)
 const theme = createTheme({
   palette: {
     primary: {
@@ -29,26 +30,12 @@ const theme = createTheme({
       dark: "#b06e31",
       contrastText: "#ffffff",
     },
-    error: {
-      main: "#d32f2f",
-    },
-    warning: {
-      main: "#FFA000",
-    },
-    info: {
-      main: "#0288d1",
-    },
-    success: {
-      main: green[600],
-    },
-    background: {
-      default: "#f8f9fa",
-      paper: "#ffffff",
-    },
-    text: {
-      primary: "#333333",
-      secondary: "#555555",
-    },
+    error: { main: "#d32f2f" },
+    warning: { main: "#FFA000" },
+    info: { main: "#0288d1" },
+    success: { main: green[600] },
+    background: { default: "#f8f9fa", paper: "#ffffff" },
+    text: { primary: "#333333", secondary: "#555555" },
   },
   typography: {
     fontFamily: [
@@ -60,42 +47,22 @@ const theme = createTheme({
       "Arial",
       "sans-serif",
     ].join(","),
-    h1: {
-      fontWeight: 600,
-    },
-    h4: {
-      fontWeight: 600,
-    },
-    h5: {
-      fontWeight: 600,
-    },
-    h6: {
-      fontWeight: 600,
-    },
+    h1: { fontWeight: 600 },
+    h4: { fontWeight: 600 },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
   },
   components: {
     MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 8,
-        },
-      },
+      styleOverrides: { root: { borderRadius: 8 } },
     },
     MuiButton: {
       styleOverrides: {
-        root: {
-          borderRadius: 6,
-          textTransform: "none",
-          fontWeight: 600,
-        },
+        root: { borderRadius: 6, textTransform: "none", fontWeight: 600 },
       },
     },
     MuiAppBar: {
-      styleOverrides: {
-        root: {
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-        },
-      },
+      styleOverrides: { root: { boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)" } },
     },
   },
 });
@@ -136,6 +103,7 @@ function App() {
               path="/grid-detail/:imageId/:col/:row"
               element={<GridDetail />}
             />
+            <Route path="/compare" element={<ImageComparison />} />
           </Routes>
         </Container>
       </Box>

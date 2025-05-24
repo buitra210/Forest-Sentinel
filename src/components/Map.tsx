@@ -127,7 +127,7 @@ const Map = () => {
   };
 
   const handleCompare = () => {
-    console.log("Compare clicked for grid:", selectedGrid);
+    navigate("/compare");
     setPopupOpen(false);
   };
 
@@ -324,7 +324,6 @@ const Map = () => {
             />
           )}
 
-          {/* Hiển thị 2 lớp khi chọn overlay */}
           {viewMode === "overlay" && latestDate && selectedItem && (
             <>
               <img
@@ -355,7 +354,6 @@ const Map = () => {
             </>
           )}
 
-          {/* Overlay lưới 8x6 */}
           {[...Array(gridRows)].map((_, row) =>
             [...Array(gridCols)].map((_, col) => (
               <Box
