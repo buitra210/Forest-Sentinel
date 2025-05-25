@@ -84,7 +84,7 @@ function App() {
             <ForestIcon sx={{ mr: 2 }} />
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h5" component="h1">
-                Tay Son Forest Monitoring System
+                Son Tay Forest Monitoring System
               </Typography>
               <Typography
                 variant="subtitle2"
