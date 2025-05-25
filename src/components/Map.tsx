@@ -22,12 +22,13 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const gridRows = 8;
-const gridCols = 6;
+const gridRows = 13;
+const gridCols = 11;
 
 interface CombinedDataItem {
   rgb: string;
   mask: string;
+  masks: Record<string, string>;
   forestCoverage: Record<string, number>;
 }
 
@@ -49,6 +50,7 @@ const Map = () => {
   const [selectedYear, setSelectedYear] = useState<string>("");
 
   const [selectedGrid, setSelectedGrid] = useState<SelectedGrid | null>(null);
+  console.log(selectedGrid);
   const [popupOpen, setPopupOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<"rgb" | "mask" | "overlay">("rgb");
@@ -73,7 +75,12 @@ const Map = () => {
       const response = await axios.get<
         Record<
           string,
-          { mask: string; rgb: string; forestCoverage: Record<string, number> }
+          {
+            mask: string;
+            rgb: string;
+            masks: Record<string, string>;
+            forestCoverage: Record<string, number>;
+          }
         >
       >("http://localhost:3000/api/cloudinary/images");
       const results = response.data;

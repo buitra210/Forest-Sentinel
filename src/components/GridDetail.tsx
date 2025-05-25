@@ -21,7 +21,7 @@ import {
 interface CombinedDataItem {
   rgb: string;
   mask: string;
-  forestCoverage2017: Record<string, number>;
+  masks: Record<string, string>;
   forestCoverage: Record<string, number>;
 }
 
@@ -48,7 +48,7 @@ const GridDetail = () => {
           {
             rgb: string;
             mask: string;
-            forestCoverage2017: Record<string, number>;
+            masks: Record<string, string>;
             forestCoverage: Record<string, number>;
           }
         >
@@ -95,20 +95,33 @@ const GridDetail = () => {
 
   const selectedItem: CombinedDataItem | undefined = combinedData[imageId];
   const gridKey = `${col},${row}`;
+  const maskKey = `${col}_${row}`;
 
   const coverageSelected = selectedItem?.forestCoverage?.[gridKey] ?? 0;
-  const coverage2017 = selectedItem?.forestCoverage2017?.[gridKey] ?? 100;
+  const year2019Keys = Object.keys(combinedData).filter((key) =>
+    key.startsWith("2019")
+  );
+  const latest2019Key =
+    year2019Keys.length > 0 ? year2019Keys.sort().reverse()[0] : null;
+  const coverage2019 = latest2019Key
+    ? combinedData[latest2019Key]?.forestCoverage?.[gridKey] ?? 100
+    : 100;
 
-  const diff = coverage2017 - coverageSelected;
+  const diff = (coverage2019 - coverageSelected).toFixed(3);
   console.log(diff);
-  const showWarning = diff > 1;
 
   const yearChosen = imageId.slice(0, 4);
 
   const chartData = [
-    { name: "2017", coverage: Number(coverage2017.toFixed(2)) },
+    { name: "2019", coverage: Number(coverage2019.toFixed(2)) },
     { name: yearChosen, coverage: Number(coverageSelected.toFixed(2)) },
   ];
+  console.log(chartData);
+  const gridMask = selectedItem?.masks?.[maskKey];
+  const gridMask2019 = latest2019Key
+    ? combinedData[latest2019Key]?.masks?.[maskKey]
+    : null;
+  console.log(gridMask);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -117,28 +130,25 @@ const GridDetail = () => {
       </Button>
       <Box>
         <Typography variant="h4" sx={{ mb: 3 }}>
-          Tay Son Forest — Row {parseInt(row) + 1}, Column {parseInt(col) + 1}
+          Forest — Row {parseInt(row) + 1}, Column {parseInt(col) + 1}
         </Typography>
-
-        {showWarning && (
-          <Typography
-            variant="body1"
-            sx={{
-              mb: 3,
-              color: theme.palette.error.main,
-              fontWeight: "bold",
-            }}
-          >
-            ⚠️ At risk of deforestation (forest area in 2025 will decrease by
-            more than 3% compared to 2017)
-          </Typography>
-        )}
+        <Typography variant="h6" sx={{ mb: 1, color: "error.main" }}>
+          The {yearChosen} coverage was {coverageSelected}%, which is a {diff}%
+          decrease compared to 2019.
+        </Typography>
       </Box>
 
-      <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-        <Box sx={{ flex: 1, minWidth: 300 }}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 3,
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ flex: 1, maxWidth: 360 }}>
           <Typography variant="h6" sx={{ mb: 1 }}>
-            RGB Image
+            Mask Image (2019)
           </Typography>
           <Box
             sx={{
@@ -149,10 +159,12 @@ const GridDetail = () => {
               borderRadius: 1,
             }}
           >
-            {selectedItem?.rgb ? (
+            {gridMask2019 ? (
               <img
-                src={selectedItem.rgb}
-                alt="RGB"
+                src={gridMask2019}
+                alt={`Grid Mask 2019 Row ${parseInt(row) + 1}, Column ${
+                  parseInt(col) + 1
+                }`}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -170,15 +182,14 @@ const GridDetail = () => {
                   backgroundColor: "rgba(0,0,0,0.1)",
                 }}
               >
-                <Typography>No RGB image available</Typography>
+                <Typography>No 2019 grid mask available</Typography>
               </Box>
             )}
           </Box>
         </Box>
-
-        <Box sx={{ flex: 1, minWidth: 300 }}>
+        <Box sx={{ flex: 1, maxWidth: 360 }}>
           <Typography variant="h6" sx={{ mb: 1 }}>
-            Mask Image
+            Mask Image ({yearChosen})
           </Typography>
           <Box
             sx={{
@@ -189,10 +200,12 @@ const GridDetail = () => {
               borderRadius: 1,
             }}
           >
-            {selectedItem?.mask ? (
+            {gridMask ? (
               <img
-                src={selectedItem.mask}
-                alt="Mask"
+                src={gridMask}
+                alt={`Grid Mask Row ${parseInt(row) + 1}, Column ${
+                  parseInt(col) + 1
+                }`}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -210,7 +223,7 @@ const GridDetail = () => {
                   backgroundColor: "rgba(0,0,0,0.1)",
                 }}
               >
-                <Typography>No mask image available</Typography>
+                <Typography>No grid mask available</Typography>
               </Box>
             )}
           </Box>
@@ -218,7 +231,7 @@ const GridDetail = () => {
       </Box>
       <Box sx={{ width: "100%", height: 300, mb: 4, mt: 2 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>
-          Forest condition comparison chart with 2017
+          Forest condition comparison chart with 2019
         </Typography>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -227,7 +240,7 @@ const GridDetail = () => {
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
-            <YAxis domain={[90, 100]} unit="%" />
+            <YAxis domain={[80, 100]} unit="%" />
             <Tooltip formatter={(value: unknown) => `${value}%`} />
             <Bar
               dataKey="coverage"
