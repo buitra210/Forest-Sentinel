@@ -9,7 +9,13 @@ import {
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import axios from "axios";
-import Resemble from "resemblejs";
+
+interface ComparisonResult {
+  imageUrl: string;
+  forestLoss: number;
+  forestGain: number;
+  totalPixels: number;
+}
 
 const ImageComparison = () => {
   const [imageUrls, setImageUrls] = useState<
@@ -17,7 +23,8 @@ const ImageComparison = () => {
   >({});
   const [selectedDate1, setSelectedDate1] = useState("");
   const [selectedDate2, setSelectedDate2] = useState("");
-  const [comparisonResult, setComparisonResult] = useState();
+  const [comparisonResult, setComparisonResult] =
+    useState<ComparisonResult | null>(null);
   const [isComparing, setIsComparing] = useState(false);
 
   const fetchImagesFromBackend = async () => {
@@ -41,6 +48,23 @@ const ImageComparison = () => {
     fetchImagesFromBackend();
   }, []);
 
+  const loadImageToCanvas = (src: string): Promise<ImageData> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = src;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Could not get canvas context");
+        ctx.drawImage(img, 0, 0);
+        resolve(ctx.getImageData(0, 0, img.width, img.height));
+      };
+    });
+  };
+
   const compareImages = async () => {
     if (
       !selectedDate1 ||
@@ -56,17 +80,75 @@ const ImageComparison = () => {
       const image1 = imageUrls[selectedDate1].mask;
       const image2 = imageUrls[selectedDate2].mask;
 
-      const result: any = await new Promise((resolve) => {
-        Resemble(image1)
-          .compareTo(image2)
-          .ignoreColors()
-          .onComplete((data: any) => {
-            resolve(data);
-          });
-      });
+      if (!image1 || !image2) throw new Error("Missing image data");
+
+      const [data1, data2] = await Promise.all([
+        loadImageToCanvas(image1),
+        loadImageToCanvas(image2),
+      ]);
+
+      const width = data1.width;
+      const height = data1.height;
+      const diffCanvas = document.createElement("canvas");
+      diffCanvas.width = width;
+      diffCanvas.height = height;
+      const diffCtx = diffCanvas.getContext("2d");
+      if (!diffCtx) throw new Error("Could not get diff canvas context");
+
+      const diffData = diffCtx.createImageData(width, height);
+      let forestLoss = 0;
+      let forestGain = 0;
+      const totalPixels = width * height;
+
+      // Compare pixels
+      for (let i = 0; i < data1.data.length; i += 4) {
+        // Check if pixel is green (forest) in either image
+        const isForest1 =
+          data1.data[i + 1] > 200 &&
+          data1.data[i] < 100 &&
+          data1.data[i + 2] < 100;
+        const isForest2 =
+          data2.data[i + 1] > 200 &&
+          data2.data[i] < 100 &&
+          data2.data[i + 2] < 100;
+
+        if (isForest1 && !isForest2) {
+          // Forest loss - red
+          diffData.data[i] = 255; // R
+          diffData.data[i + 1] = 0; // G
+          diffData.data[i + 2] = 0; // B
+          diffData.data[i + 3] = 150; // A
+          forestLoss++;
+        } else if (!isForest1 && isForest2) {
+          // Forest gain - green
+          diffData.data[i] = 0; // R
+          diffData.data[i + 1] = 255; // G
+          diffData.data[i + 2] = 0; // B
+          diffData.data[i + 3] = 150; // A
+          forestGain++;
+        } else if (isForest1) {
+          // Original forest - gray
+          diffData.data[i] = 128; // R
+          diffData.data[i + 1] = 128; // G
+          diffData.data[i + 2] = 128; // B
+          diffData.data[i + 3] = 255; // A
+        } else {
+          // Non-forest - black
+          diffData.data[i] = 0; // R
+          diffData.data[i + 1] = 0; // G
+          diffData.data[i + 2] = 0; // B
+          diffData.data[i + 3] = 255; // A
+        }
+      }
+
+      diffCtx.putImageData(diffData, 0, 0);
+      const imageUrl = diffCanvas.toDataURL("image/png");
+
       setComparisonResult({
-        ...result,
-        imageUrl: (result as any).getImageDataUrl(),
+        imageUrl,
+        forestLoss,
+        forestGain,
+        totalPixels,
       });
     } catch (error) {
       console.error("Lỗi khi so sánh ảnh:", error);
@@ -83,8 +165,6 @@ const ImageComparison = () => {
   ) {
     return <Typography>Đang tải ảnh từ backend...</Typography>;
   }
-
-  console.log(comparisonResult);
 
   return (
     <Box p={2}>
@@ -139,16 +219,32 @@ const ImageComparison = () => {
             Kết quả so sánh:
           </Typography>
           <Typography>
-            Tỷ lệ thay đổi diện tích rừng giữa hai thời điểm là{" "}
-            {comparisonResult.misMatchPercentage}%.
-            {parseFloat(comparisonResult.misMatchPercentage) > 0 ? (
+            Diện tích rừng mất đi:{" "}
+            {(
+              (comparisonResult.forestLoss / comparisonResult.totalPixels) *
+              100
+            ).toFixed(2)}
+            %
+          </Typography>
+          <Typography>
+            Diện tích rừng tăng thêm:{" "}
+            {(
+              (comparisonResult.forestGain / comparisonResult.totalPixels) *
+              100
+            ).toFixed(2)}
+            %
+          </Typography>
+          <Typography>
+            {comparisonResult.forestLoss > comparisonResult.forestGain ? (
               <Typography component="span" color="error">
-                {" "}
-                Có sự thay đổi về diện tích rừng.
+                Có sự suy giảm về diện tích rừng.
+              </Typography>
+            ) : comparisonResult.forestLoss < comparisonResult.forestGain ? (
+              <Typography component="span" color="success.main">
+                Có sự gia tăng về diện tích rừng.
               </Typography>
             ) : (
-              <Typography component="span" color="success.main">
-                {" "}
+              <Typography component="span" color="info.main">
                 Không có sự thay đổi về diện tích rừng.
               </Typography>
             )}
@@ -179,7 +275,7 @@ const ImageComparison = () => {
               }}
             />
             <Tooltip
-              title="Vùng màu đỏ: Khu vực có sự thay đổi về diện tích rừng"
+              title="Vùng màu xám: Rừng ban đầu, Vùng màu đỏ: Khu vực mất rừng, Vùng màu xanh: Khu vực tăng rừng"
               placement="left"
             >
               <InfoIcon
