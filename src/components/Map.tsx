@@ -141,7 +141,7 @@ const Map = () => {
         setSelectedYear(years[0]);
       }
       if (monthsList.length > 0 && !selectedMonth) {
-        setSelectedMonth(monthsList[monthsList.length - 1]); // Default to latest month
+        setSelectedMonth(monthsList[monthsList.length - 1]);
       }
     } catch (error) {
       console.error("Error fetching combined data:", error);
@@ -245,26 +245,6 @@ const Map = () => {
 
   return (
     <Box>
-      {/* Region Selection */}
-      <Box sx={{ mb: 2 }}>
-        <FormControl size="medium" sx={{ minWidth: 200 }}>
-          <InputLabel id="region-select-label">Khu vực</InputLabel>
-          <Select
-            labelId="region-select-label"
-            value={selectedRegion}
-            label="Khu vực"
-            onChange={(e) => handleRegionChange(e.target.value as string)}
-          >
-            {REGIONS.map((region) => (
-              <MenuItem key={region} value={region}>
-                {region}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Time Controls */}
       <Box
         sx={{
           display: "flex",
@@ -334,10 +314,27 @@ const Map = () => {
           sx={{
             marginLeft: "auto",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
+            gap: 2,
           }}
         >
+          <Box>
+            <FormControl size="medium" sx={{ minWidth: 200 }}>
+              <InputLabel id="region-select-label">Khu vực</InputLabel>
+              <Select
+                labelId="region-select-label"
+                value={selectedRegion}
+                label="Khu vực"
+                onChange={(e) => handleRegionChange(e.target.value as string)}
+              >
+                {REGIONS.map((region) => (
+                  <MenuItem key={region} value={region}>
+                    {region}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <VisibilityIcon />
             <Typography sx={{ ml: 1 }}>{viewModeLabel()}</Typography>

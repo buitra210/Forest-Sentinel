@@ -232,7 +232,6 @@ const GridDetail = () => {
         </Typography>
       )}
 
-      {/* Mask Images */}
       <Box
         sx={{
           display: "flex",
@@ -242,48 +241,6 @@ const GridDetail = () => {
           mb: 3,
         }}
       >
-        <Box sx={{ flex: 1, maxWidth: 360 }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            Mask Image - {selectedDate2 || "Ngày 2"}
-          </Typography>
-          <Box
-            sx={{
-              width: "100%",
-              aspectRatio: "1",
-              border: "1px solid #ccc",
-              overflow: "hidden",
-              borderRadius: 1,
-            }}
-          >
-            {gridMask2 && selectedDate2 ? (
-              <img
-                src={gridMask2}
-                alt={`Grid Mask ${selectedDate2} Column ${
-                  parseInt(col) + 1
-                }, Row ${parseInt(row) + 1}`}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <Box
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "rgba(0,0,0,0.1)",
-                }}
-              >
-                <Typography>Chọn ngày 2 để hiển thị ảnh</Typography>
-              </Box>
-            )}
-          </Box>
-        </Box>
-
         <Box sx={{ flex: 1, maxWidth: 360 }}>
           <Typography variant="h6" sx={{ mb: 1 }}>
             Mask Image - {selectedDate1}
@@ -321,6 +278,47 @@ const GridDetail = () => {
                 }}
               >
                 <Typography>No grid mask available</Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+        <Box sx={{ flex: 1, maxWidth: 360 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Mask Image - {selectedDate2 || "Ngày 2"}
+          </Typography>
+          <Box
+            sx={{
+              width: "100%",
+              aspectRatio: "1",
+              border: "1px solid #ccc",
+              overflow: "hidden",
+              borderRadius: 1,
+            }}
+          >
+            {gridMask2 && selectedDate2 ? (
+              <img
+                src={gridMask2}
+                alt={`Grid Mask ${selectedDate2} Column ${
+                  parseInt(col) + 1
+                }, Row ${parseInt(row) + 1}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(0,0,0,0.1)",
+                }}
+              >
+                <Typography>Chọn ngày 2 để hiển thị ảnh</Typography>
               </Box>
             )}
           </Box>
