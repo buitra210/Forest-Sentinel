@@ -84,14 +84,14 @@ function App() {
             <ForestIcon sx={{ mr: 2 }} />
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h5" component="h1">
-                Son Tay Forest Monitoring System
+                Hệ thống Giám sát Rừng
               </Typography>
               <Typography
                 variant="subtitle2"
                 component="p"
                 sx={{ opacity: 0.8 }}
               >
-                Satellite Imagery Analysis for Deforestation Prevention
+                Phân tích ảnh vệ tinh để phòng chống phá rừng
               </Typography>
             </Box>
           </Toolbar>

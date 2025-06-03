@@ -22,8 +22,34 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const gridRows = 13;
-const gridCols = 11;
+const gridRows = 11;
+const gridCols = 13;
+
+const REGIONS = [
+  "BaVi",
+  "SocSon",
+  "MyDuc",
+  "ChuongMy",
+  "QuocOai",
+  "ThachThat",
+  "SonTay",
+];
+
+// Month names in Vietnamese
+const MONTHS = [
+  { value: "01", label: "Tháng 1" },
+  { value: "02", label: "Tháng 2" },
+  { value: "03", label: "Tháng 3" },
+  { value: "04", label: "Tháng 4" },
+  { value: "05", label: "Tháng 5" },
+  { value: "06", label: "Tháng 6" },
+  { value: "07", label: "Tháng 7" },
+  { value: "08", label: "Tháng 8" },
+  { value: "09", label: "Tháng 9" },
+  { value: "10", label: "Tháng 10" },
+  { value: "11", label: "Tháng 11" },
+  { value: "12", label: "Tháng 12" },
+];
 
 interface CombinedDataItem {
   rgb: string;
@@ -48,6 +74,9 @@ const Map = () => {
 
   const [allYears, setAllYears] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("");
+  const [allMonths, setAllMonths] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("SonTay");
 
   const [selectedGrid, setSelectedGrid] = useState<SelectedGrid | null>(null);
   console.log(selectedGrid);
@@ -82,7 +111,11 @@ const Map = () => {
             forestCoverage: Record<string, number>;
           }
         >
-      >("http://localhost:3000/api/cloudinary/images");
+      >(
+        `http://localhost:3000/api/cloudinary/images?region=${encodeURIComponent(
+          selectedRegion
+        )}`
+      );
       const results = response.data;
       setCombinedData(results);
 
@@ -92,8 +125,23 @@ const Map = () => {
       ).sort((a, b) => Number(b) - Number(a));
       setAllYears(years);
 
-      if (years.length > 0) {
+      // Extract months from available dates for the selected year
+      const monthsSet = new Set<string>();
+      allDates.forEach((date) => {
+        if (date.length >= 7) {
+          // Format: YYYY-MM-DD or YYYY-MM
+          const month = date.slice(5, 7);
+          monthsSet.add(month);
+        }
+      });
+      const monthsList = Array.from(monthsSet).sort();
+      setAllMonths(monthsList);
+
+      if (years.length > 0 && !selectedYear) {
         setSelectedYear(years[0]);
+      }
+      if (monthsList.length > 0 && !selectedMonth) {
+        setSelectedMonth(monthsList[monthsList.length - 1]); // Default to latest month
       }
     } catch (error) {
       console.error("Error fetching combined data:", error);
@@ -104,15 +152,17 @@ const Map = () => {
     event.preventDefault();
     event.stopPropagation();
 
-    const datesOfYear = Object.keys(combinedData)
-      .filter((d) => d.startsWith(selectedYear))
+    const datesOfYearMonth = Object.keys(combinedData)
+      .filter(
+        (d) => d.startsWith(selectedYear) && d.slice(5, 7) === selectedMonth
+      )
       .sort()
       .reverse();
-    const latestDate = datesOfYear.length > 0 ? datesOfYear[0] : "";
+    const latestDate = datesOfYearMonth.length > 0 ? datesOfYearMonth[0] : "";
     if (!latestDate) return;
 
     const coverageMap = combinedData[latestDate]?.forestCoverage || {};
-    const gridKey = `${col},${row}`; // Lưu ý: col,x trước, row,y sau
+    const gridKey = `${col},${row}`; // API format: col,row
     const coverage = coverageMap[gridKey] ?? 0;
 
     setSelectedGrid({
@@ -127,14 +177,16 @@ const Map = () => {
   const handleSeeDetails = () => {
     if (selectedGrid) {
       navigate(
-        `/grid-detail/${selectedGrid.imageId}/${selectedGrid.col}/${selectedGrid.row}`
+        `/grid-detail/${selectedGrid.imageId}/${selectedGrid.col}/${
+          selectedGrid.row
+        }?region=${encodeURIComponent(selectedRegion)}`
       );
     }
     setPopupOpen(false);
   };
 
   const handleCompare = () => {
-    navigate("/compare");
+    navigate(`/compare?region=${encodeURIComponent(selectedRegion)}`);
     setPopupOpen(false);
   };
 
@@ -145,17 +197,19 @@ const Map = () => {
 
   useEffect(() => {
     fetchCombinedData();
-  }, []);
+  }, [selectedRegion]);
 
   if (allYears.length === 0 || !selectedYear) {
     return <Typography>Loading images...</Typography>;
   }
 
-  const datesOfYear = Object.keys(combinedData)
-    .filter((d) => d.startsWith(selectedYear))
+  const datesOfYearMonth = Object.keys(combinedData)
+    .filter(
+      (d) => d.startsWith(selectedYear) && d.slice(5, 7) === selectedMonth
+    )
     .sort()
     .reverse();
-  const latestDate = datesOfYear.length > 0 ? datesOfYear[0] : "";
+  const latestDate = datesOfYearMonth.length > 0 ? datesOfYearMonth[0] : "";
   const selectedItem: CombinedDataItem | null = latestDate
     ? combinedData[latestDate] || null
     : null;
@@ -174,6 +228,15 @@ const Map = () => {
   const handleYearDropdownChange = (year: string) => {
     setSelectedYear(year);
   };
+
+  const handleMonthDropdownChange = (month: string) => {
+    setSelectedMonth(month);
+  };
+
+  const handleRegionChange = (region: string) => {
+    setSelectedRegion(region);
+  };
+
   const viewModeLabel = () => {
     if (viewMode === "rgb") return "RGB";
     if (viewMode === "mask") return "Mask";
@@ -182,37 +245,90 @@ const Map = () => {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-        <IconButton
-          onClick={goPrevYear}
-          disabled={yearIndex >= allYears.length - 1}
-        >
-          <ArrowBackIosNewIcon />
-        </IconButton>
-
-        <Typography variant="h6" sx={{ minWidth: 80, textAlign: "center" }}>
-          {selectedYear}
-        </Typography>
-
-        <IconButton onClick={goNextYear} disabled={yearIndex <= 0}>
-          <ArrowForwardIosIcon />
-        </IconButton>
-
-        <FormControl size="small" sx={{ minWidth: 100, ml: 2 }}>
-          <InputLabel id="year-select-label">Year</InputLabel>
+      {/* Region Selection */}
+      <Box sx={{ mb: 2 }}>
+        <FormControl size="medium" sx={{ minWidth: 200 }}>
+          <InputLabel id="region-select-label">Khu vực</InputLabel>
           <Select
-            labelId="year-select-label"
-            value={selectedYear}
-            label="Year"
-            onChange={(e) => handleYearDropdownChange(e.target.value as string)}
+            labelId="region-select-label"
+            value={selectedRegion}
+            label="Khu vực"
+            onChange={(e) => handleRegionChange(e.target.value as string)}
           >
-            {allYears.map((yr) => (
-              <MenuItem key={yr} value={yr}>
-                {yr}
+            {REGIONS.map((region) => (
+              <MenuItem key={region} value={region}>
+                {region}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
+      </Box>
+
+      {/* Time Controls */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          mb: 2,
+          flexWrap: "wrap",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <IconButton
+            onClick={goPrevYear}
+            disabled={yearIndex >= allYears.length - 1}
+          >
+            <ArrowBackIosNewIcon />
+          </IconButton>
+
+          <Typography variant="h6" sx={{ minWidth: 80, textAlign: "center" }}>
+            {selectedYear}
+          </Typography>
+
+          <IconButton onClick={goNextYear} disabled={yearIndex <= 0}>
+            <ArrowForwardIosIcon />
+          </IconButton>
+
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <InputLabel id="year-select-label">Năm</InputLabel>
+            <Select
+              labelId="year-select-label"
+              value={selectedYear}
+              label="Năm"
+              onChange={(e) =>
+                handleYearDropdownChange(e.target.value as string)
+              }
+            >
+              {allYears.map((yr) => (
+                <MenuItem key={yr} value={yr}>
+                  {yr}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel id="month-select-label">Tháng</InputLabel>
+            <Select
+              labelId="month-select-label"
+              value={selectedMonth}
+              label="Tháng"
+              onChange={(e) =>
+                handleMonthDropdownChange(e.target.value as string)
+              }
+            >
+              {allMonths.map((month) => {
+                const monthObj = MONTHS.find((m) => m.value === month);
+                return (
+                  <MenuItem key={month} value={month}>
+                    {monthObj ? monthObj.label : `Tháng ${parseInt(month)}`}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+        </Box>
 
         <Box
           sx={{
@@ -290,14 +406,14 @@ const Map = () => {
           sx={{
             width: "100%",
             maxWidth: "600px",
-            aspectRatio: "1372 / 1655",
+            aspectRatio: "13 / 11",
             position: "relative",
             border: "1px solid #ccc",
             overflow: "hidden",
             mx: "auto",
           }}
         >
-          {/* Nếu không có ảnh nào trong năm đó */}
+          {/* Nếu không có ảnh nào trong tháng đó */}
           {!latestDate && (
             <Box
               sx={{
@@ -312,14 +428,22 @@ const Map = () => {
                 backgroundColor: "rgba(0,0,0,0.1)",
               }}
             >
-              <Typography>No images in {selectedYear}</Typography>
+              <Typography>
+                Không có ảnh cho {selectedRegion} -{" "}
+                {MONTHS.find((m) => m.value === selectedMonth)?.label}{" "}
+                {selectedYear}
+              </Typography>
             </Box>
           )}
 
           {viewMode !== "overlay" && latestDate && selectedItem && (
             <img
               src={viewMode === "rgb" ? selectedItem.rgb : selectedItem.mask}
-              alt={`${viewMode === "rgb" ? "RGB" : "Mask"}  ${selectedYear}`}
+              alt={`${
+                viewMode === "rgb" ? "RGB" : "Mask"
+              } ${selectedRegion} ${selectedYear} ${
+                MONTHS.find((m) => m.value === selectedMonth)?.label
+              }`}
               style={{
                 width: "100%",
                 height: "100%",
@@ -335,7 +459,7 @@ const Map = () => {
             <>
               <img
                 src={selectedItem.rgb}
-                alt={`RGB ${selectedYear}`}
+                alt={`RGB ${selectedRegion} ${selectedYear}`}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -347,7 +471,7 @@ const Map = () => {
               />
               <img
                 src={selectedItem.mask}
-                alt={`Mask ${selectedYear}`}
+                alt={`Mask ${selectedRegion} ${selectedYear}`}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -361,6 +485,7 @@ const Map = () => {
             </>
           )}
 
+          {/* Grid overlay - 11 hàng, 13 cột */}
           {[...Array(gridRows)].map((_, row) =>
             [...Array(gridCols)].map((_, col) => (
               <Box
@@ -393,9 +518,9 @@ const Map = () => {
 
       <Dialog open={popupOpen} onClose={handleClosePopup}>
         <DialogTitle>
-          Grid: Row{" "}
-          {selectedGrid?.row !== undefined ? selectedGrid.row + 1 : ""}, Column{" "}
-          {selectedGrid?.col !== undefined ? selectedGrid.col + 1 : ""}
+          Grid: Column{" "}
+          {selectedGrid?.col !== undefined ? selectedGrid.col + 1 : ""}, Row{" "}
+          {selectedGrid?.row !== undefined ? selectedGrid.row + 1 : ""}
         </DialogTitle>
         <DialogContent>
           <Typography>
