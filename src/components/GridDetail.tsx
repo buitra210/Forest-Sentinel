@@ -52,7 +52,7 @@ const GridDetail = () => {
             forestCoverage: Record<string, number>;
           }
         >
-      >("http://localhost:3000/api/cloudinary/images/SonTay");
+      >("http://localhost:3000/api/cloudinary/images");
       setCombinedData(response.data);
     } catch (error) {
       console.error("Error fetching combined data:", error);
