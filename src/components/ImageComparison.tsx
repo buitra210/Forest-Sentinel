@@ -17,20 +17,42 @@ interface ComparisonResult {
   totalPixels: number;
 }
 
+const AREAS = [
+  "Ba Vì",
+  "Sóc Sơn",
+  "Mỹ Đức",
+  "Chương Mĩ",
+  "Quốc Oai",
+  "Thạch Thất",
+  "Sơn Tây",
+];
+
+const AREA_API_MAP: Record<string, string> = {
+  "Ba Vì": "BaVi",
+  "Sóc Sơn": "SocSon",
+  "Mỹ Đức": "MyDuc",
+  "Chương Mĩ": "ChuongMy",
+  "Quốc Oai": "QuocOai",
+  "Thạch Thất": "ThachThat",
+  "Sơn Tây": "SonTay",
+};
+
 const ImageComparison = () => {
   const [imageUrls, setImageUrls] = useState<
     Record<string, { rgb?: string; mask?: string }>
   >({});
   const [selectedDate1, setSelectedDate1] = useState("");
   const [selectedDate2, setSelectedDate2] = useState("");
+  const [selectedArea, setSelectedArea] = useState(AREAS[0]);
   const [comparisonResult, setComparisonResult] =
     useState<ComparisonResult | null>(null);
   const [isComparing, setIsComparing] = useState(false);
 
   const fetchImagesFromBackend = async () => {
     try {
+      const apiArea = AREA_API_MAP[selectedArea];
       const response = await axios.get(
-        "http://localhost:3000/api/cloudinary/images"
+        `http://localhost:3000/api/cloudinary/images/?region=${apiArea}`
       );
       const results = response.data;
       setImageUrls(results);
@@ -46,7 +68,7 @@ const ImageComparison = () => {
 
   useEffect(() => {
     fetchImagesFromBackend();
-  }, []);
+  }, [selectedArea]);
 
   const loadImageToCanvas = (src: string): Promise<ImageData> => {
     return new Promise((resolve) => {
@@ -170,7 +192,22 @@ const ImageComparison = () => {
     <Box p={2}>
       <Box display="flex" gap={2} mb={2}>
         <Box>
-          <Typography variant="h6">Ngày ảnh 1:</Typography>
+          <Typography variant="h6">Khu vực:</Typography>
+          <Select
+            value={selectedArea}
+            onChange={(e) => setSelectedArea(e.target.value)}
+            sx={{ minWidth: 200 }}
+          >
+            {AREAS.map((area) => (
+              <MenuItem key={area} value={area}>
+                {area}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
+
+        <Box>
+          <Typography variant="h6">Thời gian 1:</Typography>
           <Select
             value={selectedDate1}
             onChange={(e) => setSelectedDate1(e.target.value)}
@@ -187,7 +224,7 @@ const ImageComparison = () => {
         </Box>
 
         <Box>
-          <Typography variant="h6">Ngày ảnh 2:</Typography>
+          <Typography variant="h6">Thời gian 2:</Typography>
           <Select
             value={selectedDate2}
             onChange={(e) => setSelectedDate2(e.target.value)}
