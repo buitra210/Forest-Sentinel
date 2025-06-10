@@ -414,7 +414,6 @@ const Map = () => {
             mx: "auto",
           }}
         >
-          {/* Nếu không có ảnh nào trong tháng đó */}
           {!latestDate && (
             <Box
               sx={{

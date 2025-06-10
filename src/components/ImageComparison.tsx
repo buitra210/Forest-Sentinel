@@ -124,7 +124,6 @@ const ImageComparison = () => {
 
       // Compare pixels
       for (let i = 0; i < data1.data.length; i += 4) {
-        // Check if pixel is green (forest) in either image
         const isForest1 =
           data1.data[i + 1] > 200 &&
           data1.data[i] < 100 &&
@@ -135,14 +134,12 @@ const ImageComparison = () => {
           data2.data[i + 2] < 100;
 
         if (isForest1 && !isForest2) {
-          // Forest loss - red
           diffData.data[i] = 255; // R
           diffData.data[i + 1] = 0; // G
           diffData.data[i + 2] = 0; // B
           diffData.data[i + 3] = 150; // A
           forestLoss++;
         } else if (!isForest1 && isForest2) {
-          // Forest gain - green
           diffData.data[i] = 0; // R
           diffData.data[i + 1] = 255; // G
           diffData.data[i + 2] = 0; // B

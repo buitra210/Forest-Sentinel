@@ -22,10 +22,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Constants to match Map.tsx
 const REGIONS = ["SonTay", "BaVi", "ChuongMy"];
 
-// Grid configuration for each region
 const REGION_GRIDS = {
   SonTay: { rows: 6, cols: 5 },
   BaVi: { rows: 6, cols: 4 },
@@ -84,16 +82,13 @@ const GridDetail = () => {
       const data = response.data;
       setCombinedData(data);
 
-      // Set available dates
       const dates = Object.keys(data).sort();
       setAvailableDates(dates);
 
-      // Set default dates if not already set
       if (imageId && !selectedDate1) {
         setSelectedDate1(imageId);
       }
       if (!selectedDate2 && dates.length > 1) {
-        // Default to earliest available date as comparison
         setSelectedDate2(dates[0]);
       }
     } catch (error) {
@@ -159,8 +154,8 @@ const GridDetail = () => {
   const selectedItem1 = combinedData[selectedDate1];
   const selectedItem2 = combinedData[selectedDate2];
 
-  const gridKey = `${row}_${col}`; // For forestCoverage: "row_col" format
-  const maskKey = `${row}_${col}`; // For masks: "row_col" format
+  const gridKey = `${row}_${col}`;
+  const maskKey = `${row}_${col}`;
 
   const coverage1 = selectedItem1?.forestCoverage?.[gridKey] ?? 0;
   const coverage2 = selectedItem2?.forestCoverage?.[gridKey] ?? 0;
