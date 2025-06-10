@@ -22,18 +22,16 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const gridRows = 11;
-const gridCols = 13;
+// Grid dimensions will be determined by selected region
 
-const REGIONS = [
-  "BaVi",
-  "SocSon",
-  "MyDuc",
-  "ChuongMy",
-  "QuocOai",
-  "ThachThat",
-  "SonTay",
-];
+const REGIONS = ["SonTay", "BaVi", "ChuongMy"];
+
+// Grid configuration for each region
+const REGION_GRIDS = {
+  SonTay: { rows: 6, cols: 5 },
+  BaVi: { rows: 6, cols: 4 },
+  ChuongMy: { rows: 3, cols: 4 },
+};
 
 // Month names in Vietnamese
 const MONTHS = [
@@ -162,7 +160,7 @@ const Map = () => {
     if (!latestDate) return;
 
     const coverageMap = combinedData[latestDate]?.forestCoverage || {};
-    const gridKey = `${col},${row}`; // API format: col,row
+    const gridKey = `${row}_${col}`; // API format: row_col
     const coverage = coverageMap[gridKey] ?? 0;
 
     setSelectedGrid({
@@ -403,7 +401,13 @@ const Map = () => {
           sx={{
             width: "100%",
             maxWidth: "600px",
-            aspectRatio: "13 / 11",
+            aspectRatio: (() => {
+              const gridConfig =
+                REGION_GRIDS[selectedRegion as keyof typeof REGION_GRIDS];
+              const cols = gridConfig?.cols || 5;
+              const rows = gridConfig?.rows || 6;
+              return `${cols} / ${rows}`;
+            })(),
             position: "relative",
             border: "1px solid #ccc",
             overflow: "hidden",
@@ -482,34 +486,43 @@ const Map = () => {
             </>
           )}
 
-          {/* Grid overlay - 11 hàng, 13 cột */}
-          {[...Array(gridRows)].map((_, row) =>
-            [...Array(gridCols)].map((_, col) => (
-              <Box
-                key={`${row}-${col}`}
-                sx={{
-                  position: "absolute",
-                  top: `${(row * 100) / gridRows}%`,
-                  left: `${(col * 100) / gridCols}%`,
-                  width: `${100 / gridCols}%`,
-                  height: `${100 / gridRows}%`,
-                  border: "1px solid rgba(255,255,255,0.4)",
-                  boxSizing: "border-box",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    backgroundColor: "rgba(255,255,255,0.3)",
-                    border: "2px solid rgba(255,255,255,0.8)",
-                    zIndex: 10,
-                  },
-                  "&:active": {
-                    backgroundColor: "rgba(255,255,255,0.5)",
-                  },
-                }}
-                onClick={(event) => handleGridClick(row, col, event)}
-              />
-            ))
-          )}
+          {/* Grid overlay - dynamic based on region */}
+          {(() => {
+            const gridConfig =
+              REGION_GRIDS[selectedRegion as keyof typeof REGION_GRIDS];
+            const gridRows = gridConfig?.rows || 6;
+            const gridCols = gridConfig?.cols || 5;
+
+            return [...Array(gridRows)]
+              .map((_, row) =>
+                [...Array(gridCols)].map((_, col) => (
+                  <Box
+                    key={`${row}-${col}`}
+                    sx={{
+                      position: "absolute",
+                      top: `${(row * 100) / gridRows}%`,
+                      left: `${(col * 100) / gridCols}%`,
+                      width: `${100 / gridCols}%`,
+                      height: `${100 / gridRows}%`,
+                      border: "1px solid rgba(255,255,255,0.4)",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        backgroundColor: "rgba(255,255,255,0.3)",
+                        border: "2px solid rgba(255,255,255,0.8)",
+                        zIndex: 10,
+                      },
+                      "&:active": {
+                        backgroundColor: "rgba(255,255,255,0.5)",
+                      },
+                    }}
+                    onClick={(event) => handleGridClick(row, col, event)}
+                  />
+                ))
+              )
+              .flat();
+          })()}
         </Box>
       </Box>
 

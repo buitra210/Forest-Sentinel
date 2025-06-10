@@ -22,6 +22,16 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Constants to match Map.tsx
+const REGIONS = ["SonTay", "BaVi", "ChuongMy"];
+
+// Grid configuration for each region
+const REGION_GRIDS = {
+  SonTay: { rows: 6, cols: 5 },
+  BaVi: { rows: 6, cols: 4 },
+  ChuongMy: { rows: 3, cols: 4 },
+};
+
 interface CombinedDataItem {
   rgb: string;
   mask: string;
@@ -39,6 +49,9 @@ const GridDetail = () => {
   const [searchParams] = useSearchParams();
   const region = searchParams.get("region") || "SonTay";
   const theme = useTheme();
+
+  // Validate region
+  const isValidRegion = REGIONS.includes(region);
 
   const [combinedData, setCombinedData] = useState<
     Record<string, CombinedDataItem>
@@ -129,12 +142,25 @@ const GridDetail = () => {
     );
   }
 
+  if (!isValidRegion) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h5" color="error">
+          Invalid region: {region}. Supported regions: {REGIONS.join(", ")}
+        </Typography>
+        <Button onClick={() => navigate("/")} sx={{ mt: 2 }} variant="outlined">
+          ← Back to Map
+        </Button>
+      </Box>
+    );
+  }
+
   // Get data for selected dates
   const selectedItem1 = combinedData[selectedDate1];
   const selectedItem2 = combinedData[selectedDate2];
 
-  const gridKey = `${col},${row}`; // For forestCoverage: "col,row" format
-  const maskKey = `${col}_${row}`; // For masks: "col_row" format
+  const gridKey = `${row}_${col}`; // For forestCoverage: "row_col" format
+  const maskKey = `${row}_${col}`; // For masks: "row_col" format
 
   const coverage1 = selectedItem1?.forestCoverage?.[gridKey] ?? 0;
   const coverage2 = selectedItem2?.forestCoverage?.[gridKey] ?? 0;
@@ -162,8 +188,13 @@ const GridDetail = () => {
         <Typography variant="h4" sx={{ mb: 1 }}>
           Forest — {region}
         </Typography>
-        <Typography variant="h5" sx={{ mb: 3 }}>
+        <Typography variant="h5" sx={{ mb: 1 }}>
           Column {parseInt(col) + 1}, Row {parseInt(row) + 1}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Grid Configuration:{" "}
+          {REGION_GRIDS[region as keyof typeof REGION_GRIDS]?.rows} rows ×{" "}
+          {REGION_GRIDS[region as keyof typeof REGION_GRIDS]?.cols} columns
         </Typography>
       </Box>
 
